@@ -30,7 +30,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       password: hashed,
     });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET as string, {
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET as string, {
       expiresIn: "7d",
     });
 
@@ -73,7 +73,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Set online
     await User.findByIdAndUpdate(user._id, { isOnline: true });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET as string, {
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET as string, {
       expiresIn: "7d",
     });
 

@@ -24,7 +24,6 @@ export const createRoom = async (
 ): Promise<void> => {
   try {
     const { name } = req.body;
-
     if (!name) {
       res.status(400).json({ message: "Room name is required" });
       return;

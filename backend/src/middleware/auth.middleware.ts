@@ -13,6 +13,7 @@ const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
       token,
       process.env.JWT_SECRET as string,
     ) as JwtPayload;
+
     req.userId = decoded.userId;
 
     next();

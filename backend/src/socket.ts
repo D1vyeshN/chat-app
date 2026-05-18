@@ -11,6 +11,7 @@ const initSocket = (httpServer: any) => {
   const io = new Server(httpServer, {
     cors: {
       origin: process.env.CLIENT_URL,
+      methods: ["GET", "POST"],
     },
   });
 
@@ -33,7 +34,7 @@ const initSocket = (httpServer: any) => {
       console.log(`User ${userId} connected with socket ${socket.id}`);
 
       //set online in Db
-      User.findByIdAndUpdate(userId, { online: true }).exec();
+      User.findByIdAndUpdate(userId, { isOnline: true }).exec();
 
       //notify others
       socket.broadcast.emit("user_connected", { userId });
@@ -66,23 +67,27 @@ const initSocket = (httpServer: any) => {
           content: data.content,
           roomId: data.roomId,
         });
-
+        console.log(message);
         await message.populate("sender", "username");
 
         const sender = message.sender as any;
+        console.log(message.content,sender.username);
 
         //emit to room
         io.to(data.roomId).emit("receive_message", {
           _id: message._id.toString(),
-          roomId: data.roomId,
+          roomId: data.roomId.toString(),
           sender: {
-            _id: userId,
+            _id: userId.toString(),
             username: sender.username,
           },
           content: message.content,
           createdAt: message.createdAt,
         });
+
+        console.log("Message sent successfully");
       } catch (error) {
+        console.error("Error sending message:", error);
         socket.emit("error", "Failed to send message");
       }
     });
@@ -106,7 +111,7 @@ const initSocket = (httpServer: any) => {
         onlineUsers.delete(socket.id);
         console.log(`User ${userId} disconnected`);
         //set offline in Db
-        User.findByIdAndUpdate(userId, { online: false }).exec();
+        User.findByIdAndUpdate(userId, { isOnline: false }).exec();
         //notify others
         socket.broadcast.emit("user_offline", { userId });
       }
