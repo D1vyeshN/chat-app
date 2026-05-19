@@ -8,6 +8,8 @@ import { ServerToClientEvents, ClientToServerEvents } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SendHorizonal } from "lucide-react";
+import { useChat } from "@/hooks/useChat";
+import { useTyping } from "@/hooks/useTyping";
 
 type ChatSocket = Socket<ServerToClientEvents, ClientToServerEvents> | null;
 
@@ -23,21 +25,27 @@ export default function MessageInput({
   currentUser,
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
+  const { sendMessage } = useChat(socket, room._id, currentUser._id);
+  const { typing, stopTyping } = useTyping(socket, room._id);
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!message.trim() || !socket) return;
-    
-    socket.emit("send_message", {
-      roomId: room._id,
-      content: message.trim(),
-    });
 
-    socket.emit("stop_typing", {
-      roomId: room._id,
-      username: currentUser.username,
-    });
+    // socket.emit("send_message", {
+    //   roomId: room._id,
+    //   content: message.trim(),
+    // });
+
+    sendMessage(message.trim());
+
+    // socket.emit("stop_typing", {
+    //   roomId: room._id,
+    //   username: currentUser.username,
+    // });
+
+    stopTyping(currentUser.username);
 
     setMessage("");
   };
@@ -46,19 +54,22 @@ export default function MessageInput({
     setMessage(e.target.value);
     if (!socket) return;
 
-    socket.emit("typing", {
-      roomId: room._id,
-      username: currentUser.username,
-    });
+    // socket.emit("typing", {
+    //   roomId: room._id,
+    //   username: currentUser.username,
+    // });
+
+    typing(currentUser.username);
 
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
 
     typingTimeout.current = setTimeout(() => {
-      socket.emit("stop_typing", {
-        roomId: room._id,
-        username: currentUser.username,
-      });
-    }, 2000);
+      // socket.emit("stop_typing", {
+      //   roomId: room._id,
+      //   username: currentUser.username,
+      // });
+      stopTyping(currentUser.username);
+    }, 3000);
   };
 
   return (

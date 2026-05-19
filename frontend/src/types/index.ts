@@ -16,6 +16,7 @@ export interface Message {
   };
   content: string;
   createdAt: Date | string;
+  status?: "sending" | "sent" | "delivered" | "read";
 }
 
 export interface Room {

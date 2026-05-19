@@ -5,7 +5,8 @@ import api from "@/lib/axios";
 
 export const useChat = (
   socket: any,
-  roomId: string
+  roomId: string,
+  currentUserId: string
 ) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,13 +43,50 @@ export const useChat = (
 
         if (exists) return prev;
 
+        // If message is from someone else, emit delivered receipt
+        if (message.sender._id !== currentUserId && message._id) {
+          socket?.emit(SOCKET_EVENTS.MESSAGE_DELIVERED_RECEIPT, {
+            messageId: message._id,
+            senderId: message.sender._id,
+          });
+        }
+
         return [...prev, message];
       });
+    };
+
+    const handleMessageDelivered = (data: { messageId: string }) => {
+      console.log("Message delivered:", data);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === data.messageId
+            ? { ...msg, status: "delivered" }
+            : msg
+        )
+      );
+    };
+
+    const handleMessageRead = (data: { messageId: string }) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === data.messageId
+            ? { ...msg, status: "read" }
+            : msg
+        )
+      );
     };
 
     socket.on(
       SOCKET_EVENTS.RECEIVE_MESSAGE,
       handleMessage
+    );
+    socket.on(
+      SOCKET_EVENTS.MESSAGE_DELIVERED,
+      handleMessageDelivered
+    );
+    socket.on(
+      SOCKET_EVENTS.MESSAGE_READ,
+      handleMessageRead
     );
 
     return () => {
@@ -58,19 +96,47 @@ export const useChat = (
         SOCKET_EVENTS.RECEIVE_MESSAGE,
         handleMessage
       );
+      socket.off(
+        SOCKET_EVENTS.MESSAGE_DELIVERED,
+        handleMessageDelivered
+      );
+      socket.off(
+        SOCKET_EVENTS.MESSAGE_READ,
+        handleMessageRead
+      );
     };
   }, [socket, roomId]);
 
   const sendMessage = (content: string) => {
+    const tempId = Date.now().toString();
+    const tempMessage: Message = {
+      _id: tempId,
+      roomId,
+      sender: {
+        _id: "",
+        username: "",
+      },
+      content,
+      status: "sending",
+      createdAt: new Date(),
+    };
+
+    setMessages((prev) => [...prev, tempMessage]);
+
     socket?.emit(SOCKET_EVENTS.SEND_MESSAGE, {
       roomId,
       content,
     });
   };
 
+  const markAsRead = (messageId: string) => {
+    socket?.emit(SOCKET_EVENTS.MARK_READ, { messageId });
+  };
+
   return {
     messages,
     sendMessage,
+    markAsRead,
     loading,
   };
 };

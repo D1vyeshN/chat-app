@@ -17,6 +17,7 @@ export interface IMessage extends Document {
   roomId: Types.ObjectId;
   sender: Types.ObjectId | IUser;
   content: string;
+  status?: "sending" | "sent" | "delivered" | "read";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +48,8 @@ export interface ServerToClientEvents {
   user_online: (userId: string) => void;
   user_offline: (userId: string) => void;
   room_created: (room: IRoom) => void;
+  message_delivered: (data: { messageId: string }) => void;
+  message_read: (data: { messageId: string }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -55,6 +58,8 @@ export interface ClientToServerEvents {
   send_message: (data: SendMessageData) => void;
   typing: (data: TypingData) => void;
   stop_typing: (data: TypingData) => void;
+  mark_read: (data: { messageId: string }) => void;
+  message_delivered_receipt: (data: { messageId: string; senderId: string }) => void;
 }
 
 // ── Shared Data Shapes ───────────────────────────
@@ -76,6 +81,7 @@ export interface PopulatedMessage {
     username: string;
   };
   content: string;
+  status?: "sending" | "sent" | "delivered" | "read";
   createdAt: Date;
   updatedAt: Date;
 }

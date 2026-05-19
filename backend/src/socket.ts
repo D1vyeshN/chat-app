@@ -6,6 +6,7 @@ import Message from "./models/message.model";
 
 // Track online users
 const onlineUsers = new Map<string, string>(); // socketId -> userId
+const userSockets = new Map<string, string>(); // userId -> socketId
 
 const initSocket = (httpServer: any) => {
   const io = new Server(httpServer, {
@@ -31,6 +32,7 @@ const initSocket = (httpServer: any) => {
       userId = decoded.userId;
 
       onlineUsers.set(socket.id, userId);
+      userSockets.set(userId, socket.id);
       console.log(`User ${userId} connected with socket ${socket.id}`);
 
       //set online in Db
@@ -66,15 +68,16 @@ const initSocket = (httpServer: any) => {
           sender: userId as any,
           content: data.content,
           roomId: data.roomId,
+          status: "sent",
         });
         console.log(message);
         await message.populate("sender", "username");
 
         const sender = message.sender as any;
-        console.log(message.content,sender.username);
+        console.log(message.content, sender.username);
 
-        //emit to room
-        io.to(data.roomId).emit("receive_message", {
+        //emit to room (excluding sender)
+        socket.to(data.roomId).emit("receive_message", {
           _id: message._id.toString(),
           roomId: data.roomId.toString(),
           sender: {
@@ -82,6 +85,20 @@ const initSocket = (httpServer: any) => {
             username: sender.username,
           },
           content: message.content,
+          status: message.status,
+          createdAt: message.createdAt,
+        });
+
+        // Also send to sender
+        socket.emit("receive_message", {
+          _id: message._id.toString(),
+          roomId: data.roomId.toString(),
+          sender: {
+            _id: userId.toString(),
+            username: sender.username,
+          },
+          content: message.content,
+          status: message.status,
           createdAt: message.createdAt,
         });
 
@@ -99,16 +116,67 @@ const initSocket = (httpServer: any) => {
 
     socket.on("stop_typing", (data: TypingData) => {
       socket.to(data.roomId).emit("user_stopped_typing", {
-        username: "",
+        username: data.username,
         roomId: data.roomId,
       });
     });
+
+    // ── Mark Read ─────────────────────────────────
+    socket.on("mark_read", async (data: { messageId: string }) => {
+      try {
+        console.log("Mark as read");
+        const message = await Message.findByIdAndUpdate(
+          data.messageId,
+          { status: "read" },
+          { returnDocument: "after" },
+        ).populate("sender", "username");
+
+        if (message) {
+          const sender = message.sender as any;
+          const senderId = sender._id.toString();
+
+          // Emit to the sender's socket
+          const senderSocketId = userSockets.get(senderId);
+          if (senderSocketId) {
+            io.to(senderSocketId).emit("message_read", {
+              messageId: data.messageId,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error marking message as read:", error);
+      }
+    });
+
+    // ── Message Delivered Receipt ─────────────────
+    socket.on(
+      "message_delivered_receipt",
+      async (data: { messageId: string; senderId: string }) => {
+        try {
+          // Update message status to delivered in DB
+          await Message.findByIdAndUpdate(data.messageId, {
+            status: "delivered",
+          });
+
+          // Emit to the sender's socket
+          const senderSocketId = userSockets.get(data.senderId);
+          if (senderSocketId) {
+            io.to(senderSocketId).emit("message_delivered", {
+              messageId: data.messageId,
+            });
+          }
+        } catch (error) {
+          console.error("Error processing delivered receipt:", error);
+        }
+      },
+    );
 
     // ── Disconnect ────────────────────────────────
     socket.on("disconnect", () => {
       const userId = onlineUsers.get(socket.id);
       if (userId) {
         onlineUsers.delete(socket.id);
+        userSockets.delete(userId);
         console.log(`User ${userId} disconnected`);
         //set offline in Db
         User.findByIdAndUpdate(userId, { isOnline: false }).exec();

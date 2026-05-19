@@ -25,8 +25,8 @@ export default function MessageList({
   room,
   currentUser,
 }: MessageListProps) {
-  const { messages, sendMessage, loading } = useChat(socket, room._id);
-  const { typingUser, typing, stopTyping } = useTyping(socket, room._id);
+  const { messages, sendMessage, loading, markAsRead } = useChat(socket, room._id, currentUser._id);
+  const { typingUser } = useTyping(socket, room._id);
   // const [messages, setMessages] = useState<Message[]>([]);
   // const [typingUser, setTypingUser] = useState("");
   // const [loading, setLoading] = useState(true);
@@ -65,6 +65,7 @@ export default function MessageList({
               <MessageBubble
                 key={msg._id || i}
                 message={msg}
+                markAsRead={markAsRead}
                 isMine={msg.sender._id === currentUser._id}
                 showAvatar={
                   i === 0 || messages[i - 1].sender._id !== msg.sender._id

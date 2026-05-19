@@ -13,7 +13,6 @@ export default function ChatLayout() {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
   const { user, token } = useAuth()
   const socket = useSocket(token)
-console.log(selectedRoom)
   return (
     <div className="flex h-screen bg-slate-950">
 
