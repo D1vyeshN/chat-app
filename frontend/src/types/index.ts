@@ -29,6 +29,7 @@ export interface Room {
   }[];
   createdBy: string;
   createdAt: Date;
+  unreadCount?: number | undefined;
 }
 
 export interface ServerToClientEvents {
@@ -39,6 +40,13 @@ export interface ServerToClientEvents {
   user_offline: (userId: string) => void;
   user_stopped_typing: (data: { roomId: string }) => void;
   error: (message: string) => void;
+  room_notification: (data: {
+    roomId: string;
+    roomName: string;
+    unreadCount: number;
+    lastMessage: string;
+  }) => void;
+  unread_count_updated: (data: { roomId: string; unreadCount: number }) => void;
 }
 
 export interface ClientToServerEvents {

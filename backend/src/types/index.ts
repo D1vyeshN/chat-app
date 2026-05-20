@@ -31,6 +31,16 @@ export interface IRoom extends Document {
   updatedAt: Date;
 }
 
+export interface IUnreadMessage extends Document {
+  _id: Types.ObjectId;
+  userId: Types.ObjectId;
+  roomId: Types.ObjectId;
+  unreadCount: number;
+  lastMessageId?: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // ── Express ──────────────────────────────────────
 export interface AuthRequest extends Request {
   userId?: string
@@ -50,6 +60,13 @@ export interface ServerToClientEvents {
   room_created: (room: IRoom) => void;
   message_delivered: (data: { messageId: string }) => void;
   message_read: (data: { messageId: string }) => void;
+  room_notification: (data: {
+    roomId: string;
+    roomName: string;
+    unreadCount: number;
+    lastMessage: string;
+  }) => void;
+  unread_count_updated: (data: { roomId: string; unreadCount: number }) => void;
 }
 
 export interface ClientToServerEvents {

@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import { JwtPayload, SendMessageData, TypingData } from "./types";
 import User from "./models/user.model";
 import Message from "./models/message.model";
+import Room from "./models/room.model";
+import UnreadMessage from "./models/unread-message.model";
 
 // Track online users
 const onlineUsers = new Map<string, string>(); // socketId -> userId
@@ -49,9 +51,32 @@ const initSocket = (httpServer: any) => {
     }
 
     // ── Join Room ─────────────────────────────────
-    socket.on("join_room", (roomId: string) => {
+    socket.on("join_room", async (roomId: string) => {
       socket.join(roomId);
       console.log(`User ${userId} joined room ${roomId}`);
+
+      // Mark unread messages as read and reset unread count
+      try {
+        // Reset unread count for this user/room
+        await UnreadMessage.findOneAndUpdate(
+          { userId, roomId },
+          { unreadCount: 0 }
+        );
+
+        // Mark all unread messages in this room as read
+        await Message.updateMany(
+          { roomId, status: { $in: ["sent", "delivered"] } },
+          { status: "read" }
+        );
+
+        // Notify client that unread count is cleared
+        socket.emit("unread_count_updated", {
+          roomId,
+          unreadCount: 0,
+        });
+      } catch (error) {
+        console.error("Error marking messages as read:", error);
+      }
     });
 
     // ── Leave Room ────────────────────────────────
@@ -76,8 +101,15 @@ const initSocket = (httpServer: any) => {
         const sender = message.sender as any;
         console.log(message.content, sender.username);
 
-        //emit to room (excluding sender)
-        socket.to(data.roomId).emit("receive_message", {
+        // Fetch room members
+        const room = await Room.findById(data.roomId).populate("members");
+        if (!room) {
+          socket.emit("error", "Room not found");
+          return;
+        }
+
+        const roomMembers = (room as any).members;
+        const messageData = {
           _id: message._id.toString(),
           roomId: data.roomId.toString(),
           sender: {
@@ -87,20 +119,55 @@ const initSocket = (httpServer: any) => {
           content: message.content,
           status: message.status,
           createdAt: message.createdAt,
-        });
+        };
+
+        // Helper function to increment unread count
+        const incrementUnreadCount = async (memberId: string, returnDoc = false) => {
+          return await UnreadMessage.findOneAndUpdate(
+            { userId: memberId, roomId: data.roomId },
+            { $inc: { unreadCount: 1 }, lastMessageId: message._id },
+            { upsert: true, new: returnDoc }
+          );
+        };
+
+        // Send to each member individually
+        for (const member of roomMembers) {
+          const memberId = member._id.toString();
+
+          // Skip sender
+          if (memberId === userId.toString()) {
+            continue;
+          }
+
+          const memberSocketId = userSockets.get(memberId);
+
+          if (memberSocketId) {
+            // User is online - check if they're in the room
+            const memberSocket = io.sockets.sockets.get(memberSocketId);
+            const isInRoom = memberSocket?.rooms.has(data.roomId.toString());
+
+            if (isInRoom) {
+              // User is in the room - send message directly
+              io.to(memberSocketId).emit("receive_message", messageData);
+            } else {
+              // User is online but not in the room - increment unread count and send notification
+              const unreadDoc = await incrementUnreadCount(memberId, true);
+
+              io.to(memberSocketId).emit("room_notification", {
+                roomId: room._id.toString(),
+                roomName: room.name,
+                unreadCount: unreadDoc?.unreadCount || 0,
+                lastMessage: message.content,
+              });
+            }
+          } else {
+            // User is offline - increment unread count in DB
+            await incrementUnreadCount(memberId, false);
+          }
+        }
 
         // Also send to sender
-        socket.emit("receive_message", {
-          _id: message._id.toString(),
-          roomId: data.roomId.toString(),
-          sender: {
-            _id: userId.toString(),
-            username: sender.username,
-          },
-          content: message.content,
-          status: message.status,
-          createdAt: message.createdAt,
-        });
+        socket.emit("receive_message", messageData);
 
         console.log("Message sent successfully");
       } catch (error) {

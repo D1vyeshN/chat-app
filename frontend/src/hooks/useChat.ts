@@ -11,14 +11,31 @@ export const useChat = (
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Helper function to emit delivery receipt for a message
+  const emitDeliveryReceipt = (message: Message) => {
+    if (
+      message.sender._id !== currentUserId &&
+      message._id &&
+      message.status !== "delivered" &&
+      message.status !== "read"
+    ) {
+      socket?.emit(SOCKET_EVENTS.MESSAGE_DELIVERED_RECEIPT, {
+        messageId: message._id,
+        senderId: message.sender._id,
+      });
+    }
+  };
 
-    // Load history
+  // Load history
   useEffect(() => {
     const fetchMessages = async () => {
       setLoading(true);
       try {
         const { data } = await api.get<Message[]>(`/api/messages/${roomId}`);
         setMessages(data);
+
+        // Emit delivery receipts for messages from others that are not yet delivered
+        data.forEach(emitDeliveryReceipt);
       } catch {
         console.error("Failed to load messages");
       } finally {
@@ -26,7 +43,7 @@ export const useChat = (
       }
     };
     fetchMessages();
-  }, [roomId]);
+  }, [roomId, socket, currentUserId]);
 
   useEffect(() => {
     if (!socket) return;
@@ -44,12 +61,7 @@ export const useChat = (
         if (exists) return prev;
 
         // If message is from someone else, emit delivered receipt
-        if (message.sender._id !== currentUserId && message._id) {
-          socket?.emit(SOCKET_EVENTS.MESSAGE_DELIVERED_RECEIPT, {
-            messageId: message._id,
-            senderId: message.sender._id,
-          });
-        }
+        emitDeliveryReceipt(message);
 
         return [...prev, message];
       });

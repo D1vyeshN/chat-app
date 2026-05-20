@@ -15,11 +15,10 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LogOut, Plus } from "lucide-react";
 import BrowseRoomsModal from "./BrowseRoomsModal";
-
-type ChatSocket = Socket<ServerToClientEvents, ClientToServerEvents> | null;
+import { useRoomNotifications } from "@/hooks/useRoomNotifications";
 
 interface SidebarProps {
-  socket: ChatSocket;
+  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
   selectedRoomId?: string;
   onSelectRoom: (room: Room) => void;
 }
@@ -57,6 +56,14 @@ export default function Sidebar({
     fetchRooms();
   }, []);
 
+  // Use custom hook for room notifications
+  useRoomNotifications({
+    socket,
+    rooms,
+    setRooms,
+  });
+
+
   const handleSelectRoom = (room: Room) => {
     if (selectedRoomId && socket) {
       socket.emit("leave_room", selectedRoomId);
@@ -64,6 +71,14 @@ export default function Sidebar({
     if (socket) {
       socket.emit("join_room", room._id);
     }
+    
+    // Clear unread count locally for immediate feedback
+    setRooms((prev) =>
+      prev.map((r) =>
+        r._id === room._id ? { ...r, unreadCount: undefined } : r
+      )
+    );
+    
     onSelectRoom(room);
   };
 
@@ -116,7 +131,7 @@ export default function Sidebar({
           variant="ghost"
           size="lg"
           onClick={() => setShowBrowse(true)}
-          className="text-slate-400 mb-2 !rounded-md cursor-pointer hover:text-white hover:bg-slate-800"
+          className="text-slate-400 mb-2 rounded-md! cursor-pointer hover:text-white hover:bg-slate-800"
         >
           Browse Rooms
         </Button>
