@@ -6,7 +6,6 @@ const RoomSchema = new Schema<IRoom>(
   {
     name: {
       type: String,
-      required: true,
       trim: true,
       maxlength: 100,
     },
@@ -17,6 +16,10 @@ const RoomSchema = new Schema<IRoom>(
         required: true,
       },
     ],
+    isGroup: {
+      type: Boolean,
+      default: true,
+    },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",

@@ -52,11 +52,17 @@ const initSocket = (httpServer: any) => {
 
     // ── Join Room ─────────────────────────────────
     socket.on("join_room", async (roomId: string) => {
-      socket.join(roomId);
-      console.log(`User ${userId} joined room ${roomId}`);
-
-      // Mark unread messages as read and reset unread count
       try {
+        const room = await Room.findById(roomId);
+        if (!room || !room.members.includes(userId as any)) {
+          socket.emit("error", "Access denied: Not a member of this room");
+          return;
+        }
+
+        socket.join(roomId);
+        console.log(`User ${userId} joined room ${roomId}`);
+
+        // Mark unread messages as read and reset unread count
         // Reset unread count for this user/room
         await UnreadMessage.findOneAndUpdate(
           { userId, roomId },
@@ -75,7 +81,7 @@ const initSocket = (httpServer: any) => {
           unreadCount: 0,
         });
       } catch (error) {
-        console.error("Error marking messages as read:", error);
+        console.error("Error joining room:", error);
       }
     });
 
@@ -88,6 +94,18 @@ const initSocket = (httpServer: any) => {
     // ── Send Message ──────────────────────────────\
     socket.on("send_message", async (data: SendMessageData) => {
       try {
+        // Fetch room first to check membership
+        const room = await Room.findById(data.roomId).populate("members");
+        if (!room) {
+          socket.emit("error", "Room not found");
+          return;
+        }
+
+        if (!room.members.some(m => m._id.toString() === userId)) {
+          socket.emit("error", "Access denied: Not a member of this room");
+          return;
+        }
+
         //save in db
         const message = await Message.create({
           sender: userId as any,
@@ -95,18 +113,15 @@ const initSocket = (httpServer: any) => {
           roomId: data.roomId,
           status: "sent",
         });
+
+        // Update room's updatedAt to push it to the top of lists
+        await Room.findByIdAndUpdate(data.roomId, { updatedAt: new Date() });
+
         console.log(message);
         await message.populate("sender", "username");
 
         const sender = message.sender as any;
         console.log(message.content, sender.username);
-
-        // Fetch room members
-        const room = await Room.findById(data.roomId).populate("members");
-        if (!room) {
-          socket.emit("error", "Room not found");
-          return;
-        }
 
         const roomMembers = (room as any).members;
         const messageData = {
@@ -155,7 +170,7 @@ const initSocket = (httpServer: any) => {
 
               io.to(memberSocketId).emit("room_notification", {
                 roomId: room._id.toString(),
-                roomName: room.name,
+                roomName: room.name || "",
                 unreadCount: unreadDoc?.unreadCount || 0,
                 lastMessage: message.content,
               });

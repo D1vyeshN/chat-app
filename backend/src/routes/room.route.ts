@@ -2,8 +2,9 @@ import { Router } from "express";
 import {
   createRoom,
   getMyRooms,
-  getPublicRooms,
-  joinRoom,
+  getOrCreate1to1Room,
+  addMember,
+  removeMember,
 } from "../controllers/room.controller";
 import auth from "../middleware/auth.middleware";
 
@@ -11,7 +12,8 @@ const router = Router();
 
 router.get("/", auth, getMyRooms);
 router.post("/", auth, createRoom);
-router.post("/:roomId/join", auth, joinRoom);
-router.get("/browse", auth, getPublicRooms);
+router.post("/1to1", auth, getOrCreate1to1Room);
+router.post("/:roomId/members", auth, addMember);
+router.delete("/:roomId/members/:userId", auth, removeMember);
 
 export default router;

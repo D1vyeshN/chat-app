@@ -24,8 +24,9 @@ export interface IMessage extends Document {
 
 export interface IRoom extends Document {
   _id: Types.ObjectId;
-  name: string;
+  name?: string;
   members: Types.ObjectId[];
+  isGroup: boolean;
   createdBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;

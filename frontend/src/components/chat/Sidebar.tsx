@@ -9,11 +9,12 @@ import { Socket } from "socket.io-client";
 import { ServerToClientEvents, ClientToServerEvents } from "@/types";
 import RoomItem from "./RoomItem";
 import CreateRoomModal from "./CreateRoomModal";
+import StartChatModal from "./StartChatModal";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, Plus } from "lucide-react";
+import { LogOut, Plus, MessageSquarePlus } from "lucide-react";
 import BrowseRoomsModal from "./BrowseRoomsModal";
 import { useRoomNotifications } from "@/hooks/useRoomNotifications";
 
@@ -21,28 +22,25 @@ interface SidebarProps {
   socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
   selectedRoomId?: string;
   onSelectRoom: (room: Room) => void;
+  onUnreadCountChange?: (count: number) => void;
 }
 
 export default function Sidebar({
   socket,
   selectedRoomId,
   onSelectRoom,
+  onUnreadCountChange,
 }: SidebarProps) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const [showStartChat, setShowStartChat] = useState(false);
   const { user, logout } = useAuth();
-  const [showBrowse, setShowBrowse] = useState(false);
 
-  const handleJoinRoom = async (room: Room) => {
-    try {
-      await api.post(`/api/rooms/${room._id}/join`);
-      setRooms((prev) => [room, ...prev]);
-      handleSelectRoom(room);
-      setShowBrowse(false);
-    } catch (error: any) {
-      console.error("Failed to join room:", error.response?.data?.message);
-    }
-  };
+  // Rooms are already sorted by updatedAt from backend
+  // But we might want to re-sort locally when a new message arrives or updatedAt changes
+  const sortedRooms = [...rooms].sort((a, b) => 
+    new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+  );
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -56,13 +54,17 @@ export default function Sidebar({
     fetchRooms();
   }, []);
 
+  useEffect(() => {
+    const total = rooms.reduce((acc, room) => acc + (room.unreadCount || 0), 0);
+    onUnreadCountChange?.(total);
+  }, [rooms, onUnreadCountChange]);
+
   // Use custom hook for room notifications
   useRoomNotifications({
     socket,
     rooms,
     setRooms,
   });
-
 
   const handleSelectRoom = (room: Room) => {
     if (selectedRoomId && socket) {
@@ -87,37 +89,52 @@ export default function Sidebar({
     handleSelectRoom(room);
   };
 
+  const handleChatStarted = (room: Room) => {
+    // Check if room already in list
+    if (!rooms.find((r) => r._id === room._id)) {
+      setRooms((prev) => [room, ...prev]);
+    }
+    handleSelectRoom(room);
+  };
+
   return (
     <>
       <div className="w-64 flex flex-col bg-slate-900 border-r border-slate-800">
-        {/* App Title */}
-        {/* <div className="px-4 py-3 min-h-14 border-b border-slate-800">
-          <h1 className="text-white font-bold text-lg">💬 Chat MVP</h1>
-        </div> */}
-
-        {/* Rooms Header */}
-        <div className="flex items-center justify-between px-4 py-3">
-          <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">
-            Rooms
-          </span>
+        {/* Sidebar Controls */}
+        <div className="flex flex-col gap-2 p-4">
           <Button
-            variant="ghost"
-            size="icon"
+            onClick={() => setShowStartChat(true)}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-sm h-9 gap-2"
+          >
+            <MessageSquarePlus className="h-4 w-4" />
+            New Chat
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => setShowCreate(true)}
-            className="h-6 w-6 text-slate-400 hover:text-white hover:bg-slate-800"
+            className="w-full bg-transparent border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white text-sm h-9 gap-2"
           >
             <Plus className="h-4 w-4" />
+            Create Group
           </Button>
         </div>
 
-        {/* Room List */}
-        <ScrollArea suppressHydrationWarning className="flex-1 px-2">
-          {rooms.length === 0 ? (
-            <p className="text-slate-600 text-sm px-2 py-4 text-center">
-              No rooms yet
+        <Separator className="bg-slate-800" />
+
+        <div className="px-4 py-3 flex items-center justify-between">
+          <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            Conversations
+          </span>
+        </div>
+
+        {/* Unified Room List */}
+        <ScrollArea suppressHydrationWarning className="flex-1 px-2 overflow-y-auto">
+          {sortedRooms.length === 0 ? (
+            <p className="text-slate-600 text-xs px-2 py-4 text-center">
+              No conversations yet
             </p>
           ) : (
-            rooms.map((room) => (
+            sortedRooms.map((room) => (
               <RoomItem
                 key={room._id}
                 room={room}
@@ -127,54 +144,21 @@ export default function Sidebar({
             ))
           )}
         </ScrollArea>
-        <Button
-          variant="ghost"
-          size="lg"
-          onClick={() => setShowBrowse(true)}
-          className="text-slate-400 mb-2 rounded-md! cursor-pointer hover:text-white hover:bg-slate-800"
-        >
-          Browse Rooms
-        </Button>
+
         <Separator className="bg-slate-800" />
-
-        {/* User Info */}
-        {/* <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-indigo-600 text-white text-sm">
-                {user?.username[0].toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-white text-sm font-medium">{user?.username}</p>
-              <p className="text-green-400 text-xs">Online</p>
-            </div>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={logout}
-            className="h-8 w-8 text-slate-400 hover:text-red-400
-             hover:bg-slate-800"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div> */}
       </div>
 
-      {/* Create Room Modal */}
+      {/* Modals */}
       <CreateRoomModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
         onCreated={handleRoomCreated}
       />
 
-      <BrowseRoomsModal
-        open={showBrowse}
-        onClose={() => setShowBrowse(false)}
-        onJoinRoom={handleJoinRoom}
-        joinedRoomIds={rooms.map((room) => room._id)}
+      <StartChatModal
+        open={showStartChat}
+        onClose={() => setShowStartChat(false)}
+        onChatStarted={handleChatStarted}
       />
     </>
   );

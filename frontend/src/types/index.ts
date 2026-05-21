@@ -21,7 +21,8 @@ export interface Message {
 
 export interface Room {
   _id: string;
-  name: string;
+  name?: string;
+  isGroup: boolean;
   members: {
     _id: string;
     username: string;
@@ -29,6 +30,7 @@ export interface Room {
   }[];
   createdBy: string;
   createdAt: Date;
+  updatedAt: Date;
   unreadCount?: number | undefined;
 }
 
