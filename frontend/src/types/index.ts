@@ -5,6 +5,8 @@ export interface User {
   username: string;
   email: string;
   isOnline: boolean;
+  bio?: string;
+  avatar?: string;
 }
 
 export interface Message {
@@ -23,11 +25,7 @@ export interface Room {
   _id: string;
   name?: string;
   isGroup: boolean;
-  members: {
-    _id: string;
-    username: string;
-    isOnline: boolean;
-  }[];
+  members: User[];
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;

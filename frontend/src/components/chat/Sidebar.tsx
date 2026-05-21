@@ -23,6 +23,9 @@ interface SidebarProps {
   selectedRoomId?: string;
   onSelectRoom: (room: Room) => void;
   onUnreadCountChange?: (count: number) => void;
+  onRoomsLoaded?: (rooms: Room[]) => void;
+  rooms: Room[];
+  setRooms: React.Dispatch<React.SetStateAction<Room[]>>;
 }
 
 export default function Sidebar({
@@ -30,8 +33,10 @@ export default function Sidebar({
   selectedRoomId,
   onSelectRoom,
   onUnreadCountChange,
+  onRoomsLoaded,
+  rooms,
+  setRooms,
 }: SidebarProps) {
-  const [rooms, setRooms] = useState<Room[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [showStartChat, setShowStartChat] = useState(false);
   const { user, logout } = useAuth();
@@ -47,12 +52,13 @@ export default function Sidebar({
       try {
         const { data } = await api.get<Room[]>("/api/rooms");
         setRooms(data);
+        onRoomsLoaded?.(data);
       } catch {
         console.error("Failed to fetch rooms");
       }
     };
     fetchRooms();
-  }, []);
+  }, [setRooms, onRoomsLoaded]);
 
   useEffect(() => {
     const total = rooms.reduce((acc, room) => acc + (room.unreadCount || 0), 0);
@@ -99,7 +105,7 @@ export default function Sidebar({
 
   return (
     <>
-      <div className="w-64 flex flex-col bg-slate-900 border-r border-slate-800">
+      <div className="w-full md:w-64 flex flex-col bg-slate-900 border-r border-slate-800 h-full">
         {/* Sidebar Controls */}
         <div className="flex flex-col gap-2 p-4">
           <Button

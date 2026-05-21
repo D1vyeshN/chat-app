@@ -1,7 +1,7 @@
 import { model, Schema } from "mongoose";
 import { IUser } from "../types";
 
-const userSchema = new Schema<IUser>(
+const UserSchema = new Schema<IUser>(
   {
     username: {
       type: String,
@@ -9,14 +9,13 @@ const userSchema = new Schema<IUser>(
       unique: true,
       trim: true,
       minlength: 3,
-      maxlength: 20,
     },
     email: {
       type: String,
       required: true,
       unique: true,
-      trim: true,
       lowercase: true,
+      trim: true,
     },
     password: {
       type: String,
@@ -27,12 +26,21 @@ const userSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    bio: {
+      type: String,
+      maxlength: 200,
+      default: "",
+    },
+    avatar: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
   },
 );
 
-const User = model<IUser>("User", userSchema);
+const User = model<IUser>("User", UserSchema);
 
 export default User;

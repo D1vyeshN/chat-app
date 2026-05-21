@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { searchUsers, getRecommendedUsers } from "../controllers/user.controller";
+import { searchUsers, updateProfile } from "../controllers/user.controller";
 import auth from "../middleware/auth.middleware";
 
 const router = Router();
@@ -7,6 +7,6 @@ const router = Router();
 router.use(auth);
 
 router.get("/search", searchUsers);
-router.get("/recommended", getRecommendedUsers);
+router.put("/profile", updateProfile);
 
 export default router;

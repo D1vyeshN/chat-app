@@ -10,7 +10,7 @@ export const getMyRooms = async (
 ): Promise<void> => {
   try {
     const rooms = await Room.find({ members: req.userId })
-      .populate("members", "username isOnline")
+      .populate("members", "username isOnline bio avatar")
       .sort({ updatedAt: -1 });
 
     const unreadCounts = await UnreadMessage.find({ userId: req.userId });
@@ -37,22 +37,59 @@ export const createRoom = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { name } = req.body;
+    const { name, members } = req.body;
     if (!name) {
       res.status(400).json({ message: "Room name is required" });
       return;
     }
 
+    if (!members || !Array.isArray(members) || members.length < 2) {
+      res.status(400).json({ message: "At least 2 members are required" });
+      return;
+    }
+
+    const roomMembers = [...new Set([...members, req.userId!])];
+
     const room = await Room.create({
       name: name.trim(),
-      members: [req.userId!],
+      members: roomMembers,
       createdBy: req.userId!,
       isGroup: true,
     });
 
-    await room.populate("members", "username isOnline");
+    await room.populate("members", "username isOnline bio avatar");
 
     res.status(201).json(room);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Update room (Admin only)
+export const updateRoom = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { roomId } = req.params;
+    const { name } = req.body;
+
+    const room = await Room.findById(roomId);
+    if (!room) {
+      res.status(404).json({ message: "Room not found" });
+      return;
+    }
+
+    if (room.createdBy.toString() !== req.userId) {
+      res.status(403).json({ message: "Only room creator can update group details" });
+      return;
+    }
+
+    if (name) room.name = name.trim();
+    await room.save();
+    await room.populate("members", "username isOnline bio avatar");
+
+    res.json(room);
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
@@ -74,7 +111,7 @@ export const getOrCreate1to1Room = async (
     let room = await Room.findOne({
       isGroup: false,
       members: { $all: [req.userId, otherUserId], $size: 2 },
-    }).populate("members", "username isOnline");
+    }).populate("members", "username isOnline bio avatar");
 
     if (!room) {
       room = await Room.create({
@@ -82,7 +119,7 @@ export const getOrCreate1to1Room = async (
         isGroup: false,
         createdBy: req.userId,
       });
-      await room.populate("members", "username isOnline");
+      await room.populate("members", "username isOnline bio avatar");
     }
 
     res.json(room);
@@ -120,7 +157,7 @@ export const addMember = async (
 
     room.members.push(memberToAddId as any);
     await room.save();
-    await room.populate("members", "username isOnline");
+    await room.populate("members", "username isOnline bio avatar");
 
     res.json(room);
   } catch (error) {
@@ -156,9 +193,50 @@ export const removeMember = async (
 
     room.members = room.members.filter(m => m.toString() !== memberToRemoveId);
     await room.save();
-    await room.populate("members", "username isOnline");
+    await room.populate("members", "username isOnline bio avatar");
 
     res.json(room);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Exit group
+export const exitGroup = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { roomId } = req.params;
+    
+    const room = await Room.findById(roomId);
+    if (!room) {
+      res.status(404).json({ message: "Room not found" });
+      return;
+    }
+
+    if (!room.isGroup) {
+      res.status(400).json({ message: "Cannot exit a 1:1 chat" });
+      return;
+    }
+
+    // Admin cannot exit if they are the only member, or they must promote someone else
+    // For simplicity, let's just allow exit if not the only member
+    if (room.createdBy.toString() === req.userId && room.members.length > 1) {
+      // Promote first other member to admin
+      const nextAdmin = room.members.find(m => m.toString() !== req.userId);
+      room.createdBy = nextAdmin as any;
+    } else if (room.createdBy.toString() === req.userId && room.members.length === 1) {
+       // Delete room if last member
+       await Room.findByIdAndDelete(roomId);
+       res.json({ message: "Left and deleted room" });
+       return;
+    }
+
+    room.members = room.members.filter(m => m.toString() !== req.userId);
+    await room.save();
+
+    res.json({ message: "Successfully left the group" });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
