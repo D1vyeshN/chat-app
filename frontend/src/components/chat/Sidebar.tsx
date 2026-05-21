@@ -91,9 +91,9 @@ export default function Sidebar({
     <>
       <div className="w-64 flex flex-col bg-slate-900 border-r border-slate-800">
         {/* App Title */}
-        <div className="px-4 py-5 border-b border-slate-800">
+        {/* <div className="px-4 py-3 min-h-14 border-b border-slate-800">
           <h1 className="text-white font-bold text-lg">💬 Chat MVP</h1>
-        </div>
+        </div> */}
 
         {/* Rooms Header */}
         <div className="flex items-center justify-between px-4 py-3">
@@ -138,7 +138,7 @@ export default function Sidebar({
         <Separator className="bg-slate-800" />
 
         {/* User Info */}
-        <div className="flex items-center justify-between p-4">
+        {/* <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-indigo-600 text-white text-sm">
@@ -160,7 +160,7 @@ export default function Sidebar({
           >
             <LogOut className="h-4 w-4" />
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Create Room Modal */}
