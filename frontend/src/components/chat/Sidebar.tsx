@@ -106,26 +106,6 @@ export default function Sidebar({
   return (
     <>
       <div className="w-full md:w-64 flex flex-col bg-slate-900 border-r border-slate-800 h-full">
-        {/* Sidebar Controls */}
-        <div className="flex flex-col gap-2 p-4">
-          <Button
-            onClick={() => setShowStartChat(true)}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-sm h-9 gap-2"
-          >
-            <MessageSquarePlus className="h-4 w-4" />
-            New Chat
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setShowCreate(true)}
-            className="w-full bg-transparent border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white text-sm h-9 gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Create Group
-          </Button>
-        </div>
-
-        <Separator className="bg-slate-800" />
 
         <div className="px-4 py-3 flex items-center justify-between">
           <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">

@@ -61,12 +61,12 @@ export default function RoomItem({ room, isActive, onClick }: RoomItemProps) {
         text-left transition-all mb-1
         ${
           isActive
-            ? "bg-slate-800 text-white shadow-sm ring-1 ring-slate-700"
+            ? "bg-slate-800 text-white shadow-sm ring-slate-700"
             : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
         }`}
     >
       {room.isGroup ? (
-        <div className="h-10 w-10 grid grid-cols-2 rounded-lg overflow-hidden shrink-0 ring-1 ring-slate-800">
+        <div className="h-10 w-10 grid grid-cols-2 rounded-full overflow-hidden shrink-0 ring-1 ring-slate-800">
           {roomMembers.map((el, i) => (
             <div
               key={`el-${i}`}
@@ -82,9 +82,9 @@ export default function RoomItem({ room, isActive, onClick }: RoomItemProps) {
         </div>
       ) : (
         <div className="relative shrink-0">
-          <Avatar className="h-10 w-10 rounded-lg">
-            <AvatarFallback className="bg-indigo-600 rounded-lg text-sm font-bold text-white">
-              {displayName[0].toUpperCase()}
+          <Avatar className="h-10 w-10 rounded-full">
+            <AvatarFallback className="bg-indigo-600 rounded-full text-sm font-bold text-white">
+              {displayName?.[0].toUpperCase()}
             </AvatarFallback>
           </Avatar>
           {otherUser?.isOnline && (

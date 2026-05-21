@@ -49,7 +49,7 @@ export default function MessageList({
     <div className="h-full">
       <ScrollArea
         suppressHydrationWarning
-        className=" min-h-[calc(100vh-181px)] h-[calc(100vh-181px)] px-6 py-4"
+        className=" min-h-[calc(100vh-125px)] h-[calc(100vh-125px)]  sm:min-h-[calc(100vh-181px)] sm:h-[calc(100vh-181px)] px-6 py-4"
       >
         {messages.length === 0 ? (
           <div

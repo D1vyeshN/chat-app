@@ -22,20 +22,20 @@ export default function NotificationPopover({
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   return (
-    <div className="absolute top-12 right-0 w-80 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200">
+    <div className="absolute min-h-dvh sm:min-h-fit -top-3 sm:top-12 -right-13 sm:right-0 w-[100vw] sm:w-80 bg-slate-900 border border-slate-800 sm:rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200">
       <div className="p-4 border-b border-slate-800 flex items-center justify-between">
         <h3 className="text-white font-semibold">Notifications</h3>
         <Button
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="h-6 w-6 text-slate-500 hover:text-white"
+          className="h-6 w-6 text-slate-500 hover:text-white/20"
         >
           <X className="h-4 w-4" />
         </Button>
       </div>
 
-      <ScrollArea className="max-h-[400px]">
+      <ScrollArea className="sm:max-h-[400px]">
         {roomsWithUnread.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-slate-500 text-sm">No new notifications</p>

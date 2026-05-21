@@ -78,7 +78,7 @@ export default function MessageInput({
         <Input
           value={message}
           onChange={handleChange}
-          placeholder={`Message #${room.name}`}
+          placeholder={`Enter your message...`}
           className="flex-1 bg-slate-800 border-slate-700 text-white
            placeholder:text-slate-500 focus:border-slate-600
            focus-visible:ring-0 focus-visible:ring-offset-0"

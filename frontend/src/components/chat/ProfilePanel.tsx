@@ -9,14 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
-import { Loader2, Camera, X } from "lucide-react";
+import { Loader2, Camera, X, LogOut } from "lucide-react";
 
 interface ProfilePanelProps {
   onClose: () => void;
 }
 
 export default function ProfilePanel({ onClose }: ProfilePanelProps) {
-  const { user, setUser } = useAuth();
+  const { user, setUser, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -39,8 +39,8 @@ export default function ProfilePanel({ onClose }: ProfilePanelProps) {
   };
 
   return (
-    <div className="w-80 h-full bg-slate-900 border-l border-slate-800 flex flex-col animate-in slide-in-from-right duration-300">
-      <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+    <div className="w-full h-full bg-slate-900 border-l border-slate-800 flex flex-col animate-in slide-in-from-right duration-300">
+      <div className="px-4 py-2 flex items-center justify-between">
         <h3 className="text-white font-semibold">My Profile</h3>
         <Button
           variant="ghost"
@@ -75,20 +75,28 @@ export default function ProfilePanel({ onClose }: ProfilePanelProps) {
         {isEditing ? (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-slate-400">Username</Label>
+              <Label htmlFor="username" className="text-slate-400">
+                Username
+              </Label>
               <Input
                 id="username"
                 value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
                 className="bg-slate-800 border-slate-700 text-white"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bio" className="text-slate-400">Bio</Label>
+              <Label htmlFor="bio" className="text-slate-400">
+                Bio
+              </Label>
               <Textarea
                 id="bio"
                 value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, bio: e.target.value })
+                }
                 className="bg-slate-800 border-slate-700 text-white resize-none"
                 placeholder="Tell us about yourself..."
                 rows={4}
@@ -100,7 +108,11 @@ export default function ProfilePanel({ onClose }: ProfilePanelProps) {
                 disabled={loading}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-700"
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Save"
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -114,7 +126,9 @@ export default function ProfilePanel({ onClose }: ProfilePanelProps) {
         ) : (
           <div className="space-y-6">
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Bio</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Bio
+              </p>
               <p className="text-slate-300 text-sm leading-relaxed">
                 {user?.bio || "No bio yet."}
               </p>
@@ -125,6 +139,14 @@ export default function ProfilePanel({ onClose }: ProfilePanelProps) {
               className="w-full bg-transparent border-slate-700 text-slate-300 hover:bg-slate-800"
             >
               Edit Profile
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={logout}
+              className="w-full text-slate-600 hover:text-red-400"
+            >
+              <LogOut className="h-4 w-4" /> Log out
             </Button>
           </div>
         )}
