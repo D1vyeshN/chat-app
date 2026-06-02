@@ -3,14 +3,18 @@
 // src/components/chat/MessageBubble.tsx
 import { Message } from "@/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useEffect, useRef } from "react";
-import { useChat } from "@/hooks/useChat";
+import { useEffect, useRef, useState } from "react";
+import { Edit2, Trash2, X, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface MessageBubbleProps {
   message: Message;
   isMine: boolean;
   showAvatar: boolean;
   markAsRead?: (messageId: string) => void;
+  editMessage?: (messageId: string, content: string) => void;
+  deleteMessage?: (messageId: string) => void;
 }
 
 export default function MessageBubble({
@@ -18,15 +22,19 @@ export default function MessageBubble({
   isMine,
   showAvatar,
   markAsRead,
+  editMessage,
+  deleteMessage,
 }: MessageBubbleProps) {
   const messageRef = useRef<HTMLDivElement | null>(null);
   const hasMarkedRead = useRef(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(message.content);
+  const [showActions, setShowActions] = useState(false);
 
   function formatTime(date: Date | string): string {
     return new Date(date).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
-      timeZone: "UTC",
     });
   }
 
@@ -115,54 +123,63 @@ export default function MessageBubble({
     return null;
   }
 
- useEffect(() => {
-  if (isMine) return;
+  useEffect(() => {
+    if (isMine) return;
+    if (message.status === "read") return;
+    if (hasMarkedRead.current) return;
+    if (!messageRef.current) return;
 
-  if (message.status === "read") return;
+    let timeoutId: NodeJS.Timeout;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (
+            entry.isIntersecting &&
+            !document.hidden &&
+            !hasMarkedRead.current
+          ) {
+            timeoutId = setTimeout(() => {
+              hasMarkedRead.current = true;
+              markAsRead?.(message._id as string);
+              observer.unobserve(entry.target);
+            }, 500);
+          }
+        });
+      },
+      {
+        threshold: 0.6,
+      }
+    );
 
-  if (hasMarkedRead.current) return;
+    observer.observe(messageRef.current);
 
-  if (!messageRef.current) return;
+    return () => {
+      observer.disconnect();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isMine, message._id, message.status, markAsRead]);
 
-  let timeoutId: NodeJS.Timeout;
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (
-          entry.isIntersecting &&
-          !document.hidden &&
-          !hasMarkedRead.current
-        ) {
-          timeoutId = setTimeout(() => {
-            hasMarkedRead.current = true;
-
-            markAsRead?.(message._id as string);
-
-            observer.unobserve(entry.target);
-          }, 500);
-        }
-      });
-    },
-    {
-      threshold: 0.6,
+  const handleEdit = () => {
+    if (editContent.trim() && editContent !== message.content) {
+      editMessage?.(message._id as string, editContent);
     }
-  );
+    setIsEditing(false);
+  };
 
-  observer.observe(messageRef.current);
-
-  return () => {
-    observer.disconnect();
-
-    if (timeoutId) {
-      clearTimeout(timeoutId);
+  const handleDelete = () => {
+    if (window.confirm("Are you sure you want to delete this message?")) {
+      deleteMessage?.(message._id as string);
     }
   };
-}, [isMine, message._id, message.status, markAsRead]);
 
   return (
     <div
       ref={messageRef}
-      className={`flex mt-4 items-end gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
+      className={`flex mt-4 items-end gap-2 group ${isMine ? "flex-row-reverse" : "flex-row"}`}
     >
       {/* Avatar */}
       {!isMine && (
@@ -179,7 +196,7 @@ export default function MessageBubble({
 
       {/* Bubble */}
       <div
-        className={`flex flex-col max-w-xs lg:max-w-md
+        className={`flex flex-col max-w-[75%] lg:max-w-md relative
         ${isMine ? "items-end" : "items-start"}`}
       >
         {/* Username */}
@@ -190,28 +207,72 @@ export default function MessageBubble({
         )}
 
         <div
-          className={`px-4 pb-2 pt-3 rounded-2xl
+          className={`px-4 pb-2 pt-3 rounded-2xl relative
           ${
             isMine
               ? "bg-indigo-500 text-white rounded-br-none"
               : "bg-slate-800 text-slate-100 rounded-bl-none"
           }`}
         >
-          <p className="text-sm leading-relaxed break-words">
-            {message.content}
-          </p>
-          {/* Time */}
-          <div
-            className={`flex pt-2 ${isMine ? "justify-end" : "justify-start"}`}
-          >
-            {isMine && <StatusIndicator status={message.status} />}
-            <span
-              className={`text-[10px] ${isMine ? "text-slate-400" : "text-slate-600"}`}
-            >
-              {formatTime(message.createdAt)}
-            </span>
-          </div>
+          {isEditing ? (
+            <div className="flex flex-col gap-2 min-w-[200px]">
+              <Input
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="bg-slate-700 border-slate-600 text-white text-sm"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleEdit();
+                  if (e.key === "Escape") setIsEditing(false);
+                }}
+              />
+              <div className="flex justify-end gap-1">
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setIsEditing(false)}>
+                  <X className="h-3 w-3" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-6 w-6 text-green-400" onClick={handleEdit}>
+                  <Check className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm leading-relaxed break-words">
+                {message.content}
+              </p>
+              {/* Time and Status */}
+              <div className="flex items-center gap-1 mt-1 justify-end">
+                {message.isEdited && (
+                  <span className="text-[10px] opacity-50 italic">edited</span>
+                )}
+                <span className={`text-[10px] ${isMine ? "text-indigo-200" : "text-slate-400"}`}>
+                  {formatTime(message.createdAt)}
+                </span>
+                {isMine && <StatusIndicator status={message.status} />}
+              </div>
+            </>
+          )}
         </div>
+
+        {/* Action Buttons (Edit/Delete) */}
+        {isMine && showActions && !isEditing && (
+          <div className={`absolute top-0 ${isMine ? "-left-12" : "-right-12"} flex gap-1 bg-slate-900/50 p-1 rounded-lg backdrop-blur-sm transition-opacity`}>
+            <button
+              onClick={() => setIsEditing(true)}
+              className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-colors"
+              title="Edit"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={handleDelete}
+              className="p-1 hover:bg-red-900/50 rounded text-slate-400 hover:text-red-400 transition-colors"
+              title="Delete"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -18,7 +18,9 @@ export interface Message {
   };
   content: string;
   createdAt: Date | string;
+  updatedAt?: Date | string;
   status?: "sending" | "sent" | "delivered" | "read";
+  isEdited?: boolean;
 }
 
 export interface Room {
@@ -34,11 +36,15 @@ export interface Room {
 
 export interface ServerToClientEvents {
   receive_message: (message: Message) => void;
+  message_updated: (message: Message) => void;
+  message_deleted: (data: { messageId: string }) => void;
   user_typing: (data: { roomId: string; username: string }) => void;
   user_online: (userId: string) => void;
   user_connected: (data: { userId: string }) => void;
   user_offline: (userId: string) => void;
   user_stopped_typing: (data: { roomId: string }) => void;
+  message_delivered: (data: { messageId: string }) => void;
+  message_read: (data: { messageId: string }) => void;
   error: (message: string) => void;
   room_notification: (data: {
     roomId: string;
@@ -53,6 +59,10 @@ export interface ClientToServerEvents {
   join_room: (roomId: string) => void;
   leave_room: (roomId: string) => void;
   send_message: (data: { roomId: string; content: string }) => void;
+  edit_message: (data: { messageId: string; content: string; roomId: string }) => void;
+  delete_message: (data: { messageId: string; roomId: string }) => void;
   typing: (data: { roomId: string; username: string }) => void;
   stop_typing: (data: { roomId: string; username: string }) => void;
+  mark_read: (data: { messageId: string }) => void;
+  message_delivered_receipt: (data: { messageId: string; senderId: string }) => void;
 }

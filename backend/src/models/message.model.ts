@@ -24,6 +24,10 @@ const MessageSchema = new Schema<IMessage>(
       enum: ["sending", "sent", "delivered", "read"],
       default: "sent",
     },
+    isEdited: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

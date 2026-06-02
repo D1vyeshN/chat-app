@@ -20,6 +20,7 @@ export interface IMessage extends Document {
   sender: Types.ObjectId | IUser;
   content: string;
   status?: "sending" | "sent" | "delivered" | "read";
+  isEdited?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -102,6 +103,7 @@ export interface PopulatedMessage {
   };
   content: string;
   status?: "sending" | "sent" | "delivered" | "read";
+  isEdited?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

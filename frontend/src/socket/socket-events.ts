@@ -19,6 +19,11 @@ export const SOCKET_EVENTS = {
   MARK_READ: "mark_read",
   MESSAGE_DELIVERED_RECEIPT: "message_delivered_receipt",
 
+  EDIT_MESSAGE: "edit_message",
+  DELETE_MESSAGE: "delete_message",
+  MESSAGE_UPDATED: "message_updated",
+  MESSAGE_DELETED: "message_deleted",
+
   ROOM_NOTIFICATION: "room_notification",
   UNREAD_COUNT_UPDATED: "unread_count_updated",
 };

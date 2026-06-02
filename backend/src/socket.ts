@@ -253,6 +253,38 @@ const initSocket = (httpServer: any) => {
       },
     );
 
+    // ── Edit Message ──────────────────────────────
+    socket.on("edit_message", async (data: { messageId: string; content: string; roomId: string }) => {
+      try {
+        const message = await Message.findById(data.messageId);
+        if (!message || message.sender.toString() !== userId) return;
+
+        message.content = data.content;
+        message.isEdited = true;
+        await message.save();
+
+        await message.populate("sender", "username");
+
+        io.to(data.roomId).emit("message_updated", message);
+      } catch (error) {
+        console.error("Error editing message via socket:", error);
+      }
+    });
+
+    // ── Delete Message ────────────────────────────
+    socket.on("delete_message", async (data: { messageId: string; roomId: string }) => {
+      try {
+        const message = await Message.findById(data.messageId);
+        if (!message || message.sender.toString() !== userId) return;
+
+        await Message.findByIdAndDelete(data.messageId);
+
+        io.to(data.roomId).emit("message_deleted", { messageId: data.messageId });
+      } catch (error) {
+        console.error("Error deleting message via socket:", error);
+      }
+    });
+
     // ── Disconnect ────────────────────────────────
     socket.on("disconnect", () => {
       const userId = onlineUsers.get(socket.id);
