@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "docker:build": "docker build -t chat-app-backend .",
+    "docker:run": "docker run --env-file .env -p 5000:5000 chat-app-backend"
   },
   "keywords": [],
   "author": "",
