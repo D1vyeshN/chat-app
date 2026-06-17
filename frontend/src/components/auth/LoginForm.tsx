@@ -60,7 +60,7 @@ export default function LoginForm() {
           )}
 
           <div className="space-y-2">
-            <label className="text-sm text-slate-400">Email</label>
+            <label className="text-sm text-slate-400 mb-2 block">Email</label>
             <Input
               type="email"
               placeholder="you@example.com"
@@ -73,7 +73,7 @@ export default function LoginForm() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-slate-400">Password</label>
+            <label className="text-sm text-slate-400 mb-2 block">Password</label>
             <Input
               type="password"
               placeholder="••••••"
@@ -86,7 +86,7 @@ export default function LoginForm() {
           </div>
         </CardContent>
 
-        <CardFooter className="flex flex-col gap-4">
+        <CardFooter className="flex flex-col gap-4 mt-5">
           <Button
             type="submit"
             disabled={loading}

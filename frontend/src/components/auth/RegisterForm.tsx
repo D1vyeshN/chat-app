@@ -61,7 +61,7 @@ export default function RegisterForm() {
           )}
 
           <div className="space-y-2">
-            <label className="text-sm text-slate-400">Username</label>
+            <label className="text-sm text-slate-400 mb-2 block">Username</label>
             <Input
               type="text"
               placeholder="johndoe"
@@ -74,7 +74,7 @@ export default function RegisterForm() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-slate-400">Email</label>
+            <label className="text-sm text-slate-400 mb-2 block">Email</label>
             <Input
               type="email"
               placeholder="you@example.com"
@@ -87,7 +87,7 @@ export default function RegisterForm() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-slate-400">Password</label>
+            <label className="text-sm text-slate-400 mb-2 block">Password</label>
             <Input
               type="password"
               placeholder="min 6 characters"
@@ -104,7 +104,7 @@ export default function RegisterForm() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white mt-5"
           >
             {loading ? 'Creating...' : 'Create Account'}
           </Button>
