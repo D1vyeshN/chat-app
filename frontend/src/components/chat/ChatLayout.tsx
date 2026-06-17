@@ -106,7 +106,7 @@ export default function ChatLayout() {
       >
         <div className="flex items-center">
           <div className="px-4 py-3">
-            <h1 className="text-white font-bold text-lg">💬 Chat MVP</h1>
+            <h1 className="text-white font-bold text-lg">💬 Chat Platform</h1>
           </div>
         </div>
 
